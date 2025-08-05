@@ -4,7 +4,7 @@ import 'reflect-metadata'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import 'dotenv/config'
-import routes from './routes/index'
+import routes from '@/routes/index'
 import path from 'path'
 
 const app = express()

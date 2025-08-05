@@ -1,5 +1,5 @@
-import filesRepository from './files.repository'
-import { ILegacyLine, IUserOrders } from './files.types'
+import filesRepository from '@/modules/files/files.repository'
+import { ILegacyLine, IUserOrders } from '@/modules/files/files.types'
 
 function parseLine(line: string): ILegacyLine {
     return {
@@ -12,24 +12,30 @@ function parseLine(line: string): ILegacyLine {
     }
 }
 
+import { fileProcessError } from '@/modules/files/files.errors'
+
 async function processFileUpload(content: string) {
-    const lines = content.split(/\r?\n/).filter(Boolean)
-    for (const line of lines) {
-        const parsed = parseLine(line)
-        await filesRepository.insertUser(parsed.userId, parsed.userName)
-        await filesRepository.insertProduct(parsed.productId)
-        await filesRepository.insertOrder(
-            parsed.orderId,
-            parsed.userId,
-            parsed.date
-        )
-        await filesRepository.insertOrderProduct(
-            parsed.orderId,
-            parsed.productId,
-            parsed.value
-        )
+    try {
+        const lines = content.split(/\r?\n/).filter(Boolean)
+        for (const line of lines) {
+            const parsed = parseLine(line)
+            await filesRepository.insertUser(parsed.userId, parsed.userName)
+            await filesRepository.insertProduct(parsed.productId)
+            await filesRepository.insertOrder(
+                parsed.orderId,
+                parsed.userId,
+                parsed.date
+            )
+            await filesRepository.insertOrderProduct(
+                parsed.orderId,
+                parsed.productId,
+                parsed.value
+            )
+        }
+        await filesRepository.updateOrderTotals()
+    } catch (error) {
+        throw fileProcessError()
     }
-    await filesRepository.updateOrderTotals()
 }
 
 async function getNormalizedOrders({
@@ -37,38 +43,42 @@ async function getNormalizedOrders({
     start_date,
     end_date,
 }: any): Promise<IUserOrders[]> {
-    const rows = await filesRepository.getOrdersWithProducts({
-        order_id,
-        start_date,
-        end_date,
-    })
-    const users: Record<number, IUserOrders> = {}
-    for (const row of rows) {
-        if (!users[row.user_id]) {
-            users[row.user_id] = {
-                user_id: row.user_id,
-                name: row.name,
-                orders: [],
-            }
-        }
-        let order = users[row.user_id].orders.find(
-            (o) => o.order_id === row.order_id
-        )
-        if (!order) {
-            order = {
-                order_id: row.order_id,
-                total: Number(row.total).toFixed(2),
-                date: row.date,
-                products: [],
-            }
-            users[row.user_id].orders.push(order)
-        }
-        order.products.push({
-            product_id: row.product_id,
-            value: Number(row.value).toFixed(2),
+    try {
+        const rows = await filesRepository.getOrdersWithProducts({
+            order_id,
+            start_date,
+            end_date,
         })
+        const users: Record<number, IUserOrders> = {}
+        for (const row of rows) {
+            if (!users[row.user_id]) {
+                users[row.user_id] = {
+                    user_id: row.user_id,
+                    name: row.name,
+                    orders: [],
+                }
+            }
+            let order = users[row.user_id].orders.find(
+                (o) => o.order_id === row.order_id
+            )
+            if (!order) {
+                order = {
+                    order_id: row.order_id,
+                    total: Number(row.total).toFixed(2),
+                    date: row.date,
+                    products: [],
+                }
+                users[row.user_id].orders.push(order)
+            }
+            order.products.push({
+                product_id: row.product_id,
+                value: Number(row.value).toFixed(2),
+            })
+        }
+        return Object.values(users)
+    } catch (error) {
+        throw fileProcessError()
     }
-    return Object.values(users)
 }
 
 const filesService = {

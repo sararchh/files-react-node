@@ -1,4 +1,4 @@
-import { initDb } from '../../database/init'
+import { initDb } from '@/database/init'
 
 async function insertUser(id: number, name: string) {
     const db = await initDb()
