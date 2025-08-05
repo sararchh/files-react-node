@@ -1,5 +1,5 @@
 import type { Request } from 'express'
-import multer from 'multer'
+import multer, { File as MulterFile } from 'multer'
 import crypto from 'crypto'
 import { extname, resolve } from 'path'
 
@@ -7,8 +7,8 @@ export default {
     storage: multer.diskStorage({
         destination: resolve(__dirname, '..', '..', 'public', 'upload'),
         filename: (
-            req: Express.Request,
-            file: Express.Multer.File,
+            req: Request,
+            file: MulterFile,
             cb: (error: Error | null, filename: string) => void
         ) => {
             crypto.randomBytes(16, (err, buf) => {
