@@ -9,9 +9,10 @@ import {
 
 const uploadFileController = async (req: Request, res: Response) => {
     try {
-        const file = req.file
-        const content = await fs.readFile(file.path, 'utf-8')
+        const filePath = req.file.path
+        const content = await fs.readFile(filePath, 'utf-8')
         await filesService.processFileUpload(content)
+        await fs.unlink(filePath)
         res.json({ message: 'Arquivo processado com sucesso' })
     } catch (error) {
         res.status(httpStatus.INTERNAL_SERVER_ERROR).json(fileProcessError())
