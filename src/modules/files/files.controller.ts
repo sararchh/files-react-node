@@ -6,23 +6,11 @@ import {
     invalidFileDataError,
     fileProcessError,
 } from '@/modules/files/files.errors'
-import type { Request as ExpressRequest } from 'express'
 
-interface MulterRequest extends ExpressRequest {
-    file?: {
-        path: string
-        [key: string]: any
-    }
-}
-
-const uploadFileController = async (req: MulterRequest, res: Response) => {
+const uploadFileController = async (req: Request, res: Response) => {
     try {
-        if (!req.file) {
-            return res
-                .status(httpStatus.BAD_REQUEST)
-                .json(invalidFileDataError())
-        }
-        const content = await fs.readFile(req.file.path, 'utf-8')
+        const file = req.file
+        const content = await fs.readFile(file.path, 'utf-8')
         await filesService.processFileUpload(content)
         res.json({ message: 'Arquivo processado com sucesso' })
     } catch (error) {

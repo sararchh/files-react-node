@@ -1,14 +1,17 @@
-import { Router } from 'express'
-import multer from 'multer'
-import fs from 'fs/promises'
+import multerConfig from '@/config/multer.config'
+import { filesPayloadExists } from '@/middlewares/files-payload-exists.middleware'
 import filesController from '@/modules/files/files.controller'
 
-const upload = multer({ dest: 'upload/' })
+import multer from 'multer'
+import { Router } from 'express'
+
+const upload = multer(multerConfig)
 const router = Router()
 
 router.post(
     '/upload',
     upload.single('file'),
+    filesPayloadExists,
     filesController.uploadFileController
 )
 router.get('/orders', filesController.getOrdersController)
