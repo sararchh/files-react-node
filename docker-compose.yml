@@ -1,0 +1,11 @@
+version: "3.8"
+services:
+  node:
+    build: ./
+    image: filesapi
+    ports:
+      - 2424:2424
+    # environment:
+    # depends_on:
+    env_file:
+      - ./.env
