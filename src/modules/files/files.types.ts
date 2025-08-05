@@ -1,3 +1,8 @@
+export interface OrdersQuery {
+    order_id?: number | string
+    start_date?: string
+    end_date?: string
+}
 export interface ILegacyLine {
     userId: number
     userName: string

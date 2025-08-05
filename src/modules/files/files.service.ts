@@ -1,5 +1,6 @@
 import filesRepository from '@/modules/files/files.repository'
 import { ILegacyLine, IUserOrders } from '@/modules/files/files.types'
+import { fileProcessError } from '@/modules/files/files.errors'
 
 function parseLine(line: string): ILegacyLine {
     return {
@@ -11,8 +12,6 @@ function parseLine(line: string): ILegacyLine {
         date: line.slice(87, 95).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'),
     }
 }
-
-import { fileProcessError } from '@/modules/files/files.errors'
 
 async function processFileUpload(content: string) {
     try {

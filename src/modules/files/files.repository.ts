@@ -1,4 +1,5 @@
 import { initDb } from '@/database/init'
+import type { OrdersQuery } from './files.types'
 
 async function insertUser(id: number, name: string) {
     const db = await initDb()
@@ -40,7 +41,11 @@ async function updateOrderTotals() {
     )`)
 }
 
-async function getOrdersWithProducts({ order_id, start_date, end_date }: any) {
+async function getOrdersWithProducts({
+    order_id,
+    start_date,
+    end_date,
+}: OrdersQuery) {
     const db = await initDb()
     let query = `SELECT o.id as order_id, o.user_id, o.total, o.date, u.name,
     op.product_id, op.value
@@ -48,7 +53,7 @@ async function getOrdersWithProducts({ order_id, start_date, end_date }: any) {
     JOIN users u ON o.user_id = u.id
     JOIN order_products op ON op.order_id = o.id
     WHERE 1=1`
-    const params: any[] = []
+    const params: (string | number)[] = []
     if (order_id) {
         query += ' AND o.id = ?'
         params.push(order_id)
@@ -61,6 +66,7 @@ async function getOrdersWithProducts({ order_id, start_date, end_date }: any) {
         query += ' AND o.date <= ?'
         params.push(end_date)
     }
+    query += ' ORDER BY o.user_id'
     return db.all(query, params)
 }
 
