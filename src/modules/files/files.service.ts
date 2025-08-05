@@ -1,5 +1,5 @@
-import filesRepository from '../repositories/files.repository'
-import { ILegacyLine, IUserOrders } from '../interfaces/files.interfaces'
+import filesRepository from './files.repository'
+import { ILegacyLine, IUserOrders } from './files.types'
 
 function parseLine(line: string): ILegacyLine {
     return {
