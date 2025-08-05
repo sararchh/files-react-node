@@ -1,15 +1,7 @@
 import filesRepository from '../repositories/files.repository'
+import { ILegacyLine, IUserOrders } from '../interfaces/files.interfaces'
 
-interface LegacyLine {
-    userId: number
-    userName: string
-    orderId: number
-    productId: number
-    value: string
-    date: string
-}
-
-function parseLine(line: string): LegacyLine {
+function parseLine(line: string): ILegacyLine {
     return {
         userId: Number(line.slice(0, 10)),
         userName: line.slice(10, 55).trim(),
@@ -40,13 +32,17 @@ async function processFileUpload(content: string) {
     await filesRepository.updateOrderTotals()
 }
 
-async function getNormalizedOrders({ order_id, start_date, end_date }: any) {
+async function getNormalizedOrders({
+    order_id,
+    start_date,
+    end_date,
+}: any): Promise<IUserOrders[]> {
     const rows = await filesRepository.getOrdersWithProducts({
         order_id,
         start_date,
         end_date,
     })
-    const users: any = {}
+    const users: Record<number, IUserOrders> = {}
     for (const row of rows) {
         if (!users[row.user_id]) {
             users[row.user_id] = {
@@ -56,7 +52,7 @@ async function getNormalizedOrders({ order_id, start_date, end_date }: any) {
             }
         }
         let order = users[row.user_id].orders.find(
-            (o: any) => o.order_id === row.order_id
+            (o) => o.order_id === row.order_id
         )
         if (!order) {
             order = {
