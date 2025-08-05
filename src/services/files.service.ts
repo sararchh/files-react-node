@@ -15,7 +15,7 @@ function parseLine(line: string): LegacyLine {
         userName: line.slice(10, 55).trim(),
         orderId: Number(line.slice(55, 65)),
         productId: Number(line.slice(65, 75)),
-        value: (Number(line.slice(75, 87)) / 100).toFixed(2),
+        value: Number(line.slice(75, 87)).toFixed(2),
         date: line.slice(87, 95).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'),
     }
 }
