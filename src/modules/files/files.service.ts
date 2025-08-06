@@ -1,5 +1,9 @@
 import filesRepository from '@/modules/files/files.repository'
-import { ILegacyLine, IUserOrders } from '@/modules/files/files.types'
+import {
+    ILegacyLine,
+    IUserOrders,
+    OrdersQuery,
+} from '@/modules/files/files.types'
 import { fileProcessError } from '@/modules/files/files.errors'
 
 function parseLine(line: string): ILegacyLine {
@@ -16,27 +20,53 @@ function parseLine(line: string): ILegacyLine {
 async function processFileUpload(content: string) {
     try {
         const lines = content.split(/\r?\n/).filter(Boolean)
-        for (const line of lines) {
-            const parsed = parseLine(line)
-            if (!parsed.productId || parsed.productId === 0) {
-                continue
-            }
-            await filesRepository.insertUser(parsed.userId, parsed.userName)
-            await filesRepository.insertProduct(parsed.productId)
-            await filesRepository.insertOrder(
-                parsed.orderId,
-                parsed.userId,
-                parsed.date
+        const parsedLines = lines
+            .map((line) => parseLine(line))
+            .filter((parsed) => parsed.productId && parsed.productId !== 0)
+
+        const uniqueUsers = new Map<number, { id: number; name: string }>()
+        const uniqueProducts = new Set<number>()
+
+        parsedLines.forEach((parsed) => {
+            uniqueUsers.set(parsed.userId, {
+                id: parsed.userId,
+                name: parsed.userName,
+            })
+            uniqueProducts.add(parsed.productId)
+        })
+
+        await Promise.all([
+            Promise.all(
+                Array.from(uniqueUsers.values()).map((user) =>
+                    filesRepository.insertUser(user.id, user.name)
+                )
+            ),
+            Promise.all(
+                Array.from(uniqueProducts).map((productId) =>
+                    filesRepository.insertProduct(productId)
+                )
+            ),
+        ])
+
+        await Promise.all(
+            parsedLines.map((parsed) =>
+                Promise.all([
+                    filesRepository.insertOrder(
+                        parsed.orderId,
+                        parsed.userId,
+                        parsed.date
+                    ),
+                    filesRepository.insertOrderProduct(
+                        parsed.orderId,
+                        parsed.productId,
+                        parsed.value
+                    ),
+                ])
             )
-            await filesRepository.insertOrderProduct(
-                parsed.orderId,
-                parsed.productId,
-                parsed.value
-            )
-        }
+        )
+
         await filesRepository.updateOrderTotals()
     } catch (error) {
-        console.log('🚀 ~ processFileUpload:', error)
         throw fileProcessError()
     }
 }
@@ -45,7 +75,7 @@ async function getNormalizedOrders({
     order_id,
     start_date,
     end_date,
-}: any): Promise<IUserOrders[]> {
+}: OrdersQuery): Promise<IUserOrders[]> {
     try {
         const rows = await filesRepository.getOrdersWithProducts({
             order_id,
