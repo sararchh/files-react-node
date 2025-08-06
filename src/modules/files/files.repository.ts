@@ -3,6 +3,7 @@ import { User } from '@/entities/User'
 import { Product } from '@/entities/Product'
 import { Order } from '@/entities/Order'
 import { OrderProduct } from '@/entities/OrderProduct'
+import { normalizeOrders } from '@/utils/normalize-orders.util'
 import type { OrdersQuery } from './files.types'
 
 async function insertUser(id: number, name: string) {
@@ -99,31 +100,14 @@ async function getOrdersWithProducts({
             order: [['id', 'ASC']],
         })
 
-        const data = users.map((user: any) => {
-            let orders = user.orders || []
-
-            if (typeof orders === 'string') {
-                try {
-                    orders = JSON.parse(orders)
-                } catch (e) {
-                    orders = []
-                }
-            }
-
-            if (!Array.isArray(orders)) {
-                orders = []
-            }
-
-            return {
-                user_id: user.id,
-                name: user.name,
-                orders,
-            }
-        })
+        const data = users.map((user: any) => ({
+            user_id: user.id,
+            name: user.name,
+            orders: normalizeOrders(user.orders),
+        }))
 
         return data
     } catch (error) {
-        console.log('🚀 ~ getOrdersWithProducts ~ error:', error)
         throw error
     }
 }
