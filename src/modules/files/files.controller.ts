@@ -6,6 +6,7 @@ import {
     invalidFileDataError,
     fileProcessError,
 } from '@/modules/files/files.errors'
+import { OrdersQuery } from './files.types'
 
 const uploadFileController = async (req: Request, res: Response) => {
     try {
@@ -26,7 +27,7 @@ const getOrdersController = async (req: Request, res: Response) => {
             order_id,
             start_date,
             end_date,
-        })
+        } as OrdersQuery)
         res.json(orders)
     } catch (error) {
         res.status(httpStatus.INTERNAL_SERVER_ERROR).json(fileProcessError())

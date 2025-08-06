@@ -1,25 +1,24 @@
-import { initDb } from '@/database/init'
+import { Op, Sequelize } from 'sequelize'
+import { User } from '@/entities/User'
+import { Product } from '@/entities/Product'
+import { Order } from '@/entities/Order'
+import { OrderProduct } from '@/entities/OrderProduct'
+import { normalizeOrders } from '@/utils/normalize-orders.util'
 import type { OrdersQuery } from './files.types'
 
 async function insertUser(id: number, name: string) {
-    const db = await initDb()
-    await db.run('INSERT OR IGNORE INTO users (id, name) VALUES (?, ?)', [
-        id,
-        name,
-    ])
+    await User.findOrCreate({ where: { id }, defaults: { name } })
 }
 
 async function insertProduct(id: number) {
-    const db = await initDb()
-    await db.run('INSERT OR IGNORE INTO products (id) VALUES (?)', [id])
+    await Product.findOrCreate({ where: { id } })
 }
 
 async function insertOrder(id: number, userId: number, date: string) {
-    const db = await initDb()
-    await db.run(
-        'INSERT OR IGNORE INTO orders (id, user_id, total, date) VALUES (?, ?, 0, ?)',
-        [id, userId, date]
-    )
+    await Order.findOrCreate({
+        where: { id },
+        defaults: { user_id: userId, total: 0, date },
+    })
 }
 
 async function insertOrderProduct(
@@ -27,18 +26,21 @@ async function insertOrderProduct(
     productId: number,
     value: string
 ) {
-    const db = await initDb()
-    await db.run(
-        'INSERT INTO order_products (order_id, product_id, value) VALUES (?, ?, ?)',
-        [orderId, productId, value]
-    )
+    await OrderProduct.create({
+        order_id: orderId,
+        product_id: productId,
+        value,
+    })
 }
 
 async function updateOrderTotals() {
-    const db = await initDb()
-    await db.run(`UPDATE orders SET total = (
-        SELECT SUM(value) FROM order_products WHERE order_products.order_id = orders.id
-    )`)
+    const orders = await Order.findAll()
+    for (const order of orders) {
+        const total = await OrderProduct.sum('value', {
+            where: { order_id: order.id },
+        })
+        await Order.update({ total: total || 0 }, { where: { id: order.id } })
+    }
 }
 
 async function getOrdersWithProducts({
@@ -46,28 +48,68 @@ async function getOrdersWithProducts({
     start_date,
     end_date,
 }: OrdersQuery) {
-    const db = await initDb()
-    let query = `SELECT o.id as order_id, o.user_id, o.total, o.date, u.name,
-    op.product_id, op.value
-    FROM orders o
-    JOIN users u ON o.user_id = u.id
-    JOIN order_products op ON op.order_id = o.id
-    WHERE 1=1`
-    const params: (string | number)[] = []
-    if (order_id) {
-        query += ' AND o.id = ?'
-        params.push(order_id)
+    try {
+        const filters = []
+        if (order_id) filters.push(`id = ${order_id}`)
+        if (start_date) filters.push(`date >= '${start_date}'`)
+        if (end_date) filters.push(`date <= '${end_date}'`)
+
+        const whereClause =
+            filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : ''
+        const subqueryWhereClause =
+            filters.length > 0
+                ? `AND ${filters.map((f) => f.replace(/^/, 'o.')).join(' AND ')}`
+                : ''
+
+        const users = await User.findAll({
+            attributes: [
+                'id',
+                'name',
+                [
+                    Sequelize.literal(`
+                        (SELECT JSON_ARRAYAGG(
+                           JSON_OBJECT(
+                             'order_id', o.id,
+                             'total', o.total,
+                             'date', o.date,
+                             'products', (
+                               SELECT JSON_ARRAYAGG(
+                                 JSON_OBJECT(
+                                   'product_id', op.product_id,
+                                   'value', op.value
+                                 )
+                               )
+                               FROM order_products op
+                               WHERE op.order_id = o.id
+                             )
+                           )
+                         )
+                         FROM orders o
+                         WHERE o.user_id = User.id ${subqueryWhereClause})
+                    `),
+                    'orders',
+                ],
+            ],
+            where: {
+                id: {
+                    [Op.in]: Sequelize.literal(`
+                        (SELECT DISTINCT user_id FROM orders ${whereClause})
+                    `),
+                },
+            },
+            order: [['id', 'ASC']],
+        })
+
+        const data = users.map((user: any) => ({
+            user_id: user.id,
+            name: user.name,
+            orders: normalizeOrders(user.orders),
+        }))
+
+        return data
+    } catch (error) {
+        throw error
     }
-    if (start_date) {
-        query += ' AND o.date >= ?'
-        params.push(start_date)
-    }
-    if (end_date) {
-        query += ' AND o.date <= ?'
-        params.push(end_date)
-    }
-    query += ' ORDER BY o.user_id'
-    return db.all(query, params)
 }
 
 const filesRepository = {

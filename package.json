@@ -61,13 +61,12 @@
         "express": "4.19.2",
         "http": "0.0.1-security",
         "http-status": "1.7.4",
-        "multer": "^2.0.2",
+        "multer": "2.0.2",
         "mysql2": "3.10.3",
         "reflect-metadata": "0.2.2",
         "sequelize": "6.37.3",
         "sequelize-typescript": "2.1.6",
-        "sqlite": "^5.1.1",
-        "sqlite3": "^5.1.7"
+        "zod": "4.0.14"
     },
     "devDependencies": {
         "@commitlint/cli": "19.6.1",

@@ -1,5 +1,9 @@
 import filesRepository from '@/modules/files/files.repository'
-import { ILegacyLine, IUserOrders } from '@/modules/files/files.types'
+import {
+    ILegacyLine,
+    IUserOrders,
+    OrdersQuery,
+} from '@/modules/files/files.types'
 import { fileProcessError } from '@/modules/files/files.errors'
 
 function parseLine(line: string): ILegacyLine {
@@ -16,21 +20,51 @@ function parseLine(line: string): ILegacyLine {
 async function processFileUpload(content: string) {
     try {
         const lines = content.split(/\r?\n/).filter(Boolean)
-        for (const line of lines) {
-            const parsed = parseLine(line)
-            await filesRepository.insertUser(parsed.userId, parsed.userName)
-            await filesRepository.insertProduct(parsed.productId)
-            await filesRepository.insertOrder(
-                parsed.orderId,
-                parsed.userId,
-                parsed.date
+        const parsedLines = lines
+            .map((line) => parseLine(line))
+            .filter((parsed) => parsed.productId && parsed.productId !== 0)
+
+        const uniqueUsers = new Map<number, { id: number; name: string }>()
+        const uniqueProducts = new Set<number>()
+
+        parsedLines.forEach((parsed) => {
+            uniqueUsers.set(parsed.userId, {
+                id: parsed.userId,
+                name: parsed.userName,
+            })
+            uniqueProducts.add(parsed.productId)
+        })
+
+        await Promise.all([
+            Promise.all(
+                Array.from(uniqueUsers.values()).map((user) =>
+                    filesRepository.insertUser(user.id, user.name)
+                )
+            ),
+            Promise.all(
+                Array.from(uniqueProducts).map((productId) =>
+                    filesRepository.insertProduct(productId)
+                )
+            ),
+        ])
+
+        await Promise.all(
+            parsedLines.map((parsed) =>
+                Promise.all([
+                    filesRepository.insertOrder(
+                        parsed.orderId,
+                        parsed.userId,
+                        parsed.date
+                    ),
+                    filesRepository.insertOrderProduct(
+                        parsed.orderId,
+                        parsed.productId,
+                        parsed.value
+                    ),
+                ])
             )
-            await filesRepository.insertOrderProduct(
-                parsed.orderId,
-                parsed.productId,
-                parsed.value
-            )
-        }
+        )
+
         await filesRepository.updateOrderTotals()
     } catch (error) {
         throw fileProcessError()
@@ -41,40 +75,15 @@ async function getNormalizedOrders({
     order_id,
     start_date,
     end_date,
-}: any): Promise<IUserOrders[]> {
+}: OrdersQuery): Promise<IUserOrders[]> {
     try {
         const rows = await filesRepository.getOrdersWithProducts({
             order_id,
             start_date,
             end_date,
         })
-        const users: Record<number, IUserOrders> = {}
-        for (const row of rows) {
-            if (!users[row.user_id]) {
-                users[row.user_id] = {
-                    user_id: row.user_id,
-                    name: row.name,
-                    orders: [],
-                }
-            }
-            let order = users[row.user_id].orders.find(
-                (o) => o.order_id === row.order_id
-            )
-            if (!order) {
-                order = {
-                    order_id: row.order_id,
-                    total: Number(row.total).toFixed(2),
-                    date: row.date,
-                    products: [],
-                }
-                users[row.user_id].orders.push(order)
-            }
-            order.products.push({
-                product_id: row.product_id,
-                value: Number(row.value).toFixed(2),
-            })
-        }
-        return Object.values(users)
+
+        return rows
     } catch (error) {
         throw fileProcessError()
     }
