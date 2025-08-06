@@ -48,20 +48,17 @@ async function getOrdersWithProducts({
     end_date,
 }: OrdersQuery) {
     try {
-        const orderConditions = []
-        if (order_id) orderConditions.push(`o.id = ${order_id}`)
-        if (start_date) orderConditions.push(`o.date >= '${start_date}'`)
-        if (end_date) orderConditions.push(`o.date <= '${end_date}'`)
+        const filters = []
+        if (order_id) filters.push(`id = ${order_id}`)
+        if (start_date) filters.push(`date >= '${start_date}'`)
+        if (end_date) filters.push(`date <= '${end_date}'`)
 
-        const orderWhereClause =
-            orderConditions.length > 0
-                ? `AND ${orderConditions.join(' AND ')}`
+        const whereClause =
+            filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : ''
+        const subqueryWhereClause =
+            filters.length > 0
+                ? `AND ${filters.map((f) => f.replace(/^/, 'o.')).join(' AND ')}`
                 : ''
-
-        const mainOrderConditions = []
-        if (order_id) mainOrderConditions.push(`id = ${order_id}`)
-        if (start_date) mainOrderConditions.push(`date >= '${start_date}'`)
-        if (end_date) mainOrderConditions.push(`date <= '${end_date}'`)
 
         const users = await User.findAll({
             attributes: [
@@ -87,7 +84,7 @@ async function getOrdersWithProducts({
                            )
                          )
                          FROM orders o
-                         WHERE o.user_id = User.id ${orderWhereClause})
+                         WHERE o.user_id = User.id ${subqueryWhereClause})
                     `),
                     'orders',
                 ],
@@ -95,11 +92,7 @@ async function getOrdersWithProducts({
             where: {
                 id: {
                     [Op.in]: Sequelize.literal(`
-                        (SELECT DISTINCT user_id FROM orders ${
-                            mainOrderConditions.length > 0
-                                ? `WHERE ${mainOrderConditions.join(' AND ')}`
-                                : ''
-                        })
+                        (SELECT DISTINCT user_id FROM orders ${whereClause})
                     `),
                 },
             },
