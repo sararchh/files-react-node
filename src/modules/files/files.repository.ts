@@ -1,4 +1,4 @@
-import { Op } from 'sequelize'
+import { Op, Sequelize } from 'sequelize'
 import { User } from '@/entities/User'
 import { Product } from '@/entities/Product'
 import { Order } from '@/entities/Order'
@@ -48,58 +48,89 @@ async function getOrdersWithProducts({
     end_date,
 }: OrdersQuery) {
     try {
-        const where: any = {}
-        if (order_id) where.id = order_id
-        if (start_date || end_date) {
-            where.date = {}
-            if (start_date) where.date[Op.gte] = start_date
-            if (end_date) where.date[Op.lte] = end_date
-        }
+        const orderConditions = []
+        if (order_id) orderConditions.push(`o.id = ${order_id}`)
+        if (start_date) orderConditions.push(`o.date >= '${start_date}'`)
+        if (end_date) orderConditions.push(`o.date <= '${end_date}'`)
 
-        const orders = await Order.findAll({
-            where,
-            attributes: ['id', 'user_id', 'total', 'date'],
-            order: [['user_id', 'ASC']],
+        const orderWhereClause =
+            orderConditions.length > 0
+                ? `AND ${orderConditions.join(' AND ')}`
+                : ''
+
+        const mainOrderConditions = []
+        if (order_id) mainOrderConditions.push(`id = ${order_id}`)
+        if (start_date) mainOrderConditions.push(`date >= '${start_date}'`)
+        if (end_date) mainOrderConditions.push(`date <= '${end_date}'`)
+
+        const users = await User.findAll({
+            attributes: [
+                'id',
+                'name',
+                [
+                    Sequelize.literal(`
+                        (SELECT JSON_ARRAYAGG(
+                           JSON_OBJECT(
+                             'order_id', o.id,
+                             'total', o.total,
+                             'date', o.date,
+                             'products', (
+                               SELECT JSON_ARRAYAGG(
+                                 JSON_OBJECT(
+                                   'product_id', op.product_id,
+                                   'value', op.value
+                                 )
+                               )
+                               FROM order_products op
+                               WHERE op.order_id = o.id
+                             )
+                           )
+                         )
+                         FROM orders o
+                         WHERE o.user_id = User.id ${orderWhereClause})
+                    `),
+                    'orders',
+                ],
+            ],
+            where: {
+                id: {
+                    [Op.in]: Sequelize.literal(`
+                        (SELECT DISTINCT user_id FROM orders ${
+                            mainOrderConditions.length > 0
+                                ? `WHERE ${mainOrderConditions.join(' AND ')}`
+                                : ''
+                        })
+                    `),
+                },
+            },
+            order: [['id', 'ASC']],
         })
 
-        const usersMap = new Map()
+        const data = users.map((user: any) => {
+            let orders = user.orders || []
 
-        for (const order of orders) {
-            const userId = order.user_id
-
-            if (!usersMap.has(userId)) {
-                const user = await User.findByPk(userId, {
-                    attributes: ['name'],
-                })
-
-                usersMap.set(userId, {
-                    user_id: userId,
-                    name: user?.name || `User ${userId}`,
-                    orders: [],
-                })
+            if (typeof orders === 'string') {
+                try {
+                    orders = JSON.parse(orders)
+                } catch (e) {
+                    orders = []
+                }
             }
 
-            const orderProducts = await OrderProduct.findAll({
-                where: { order_id: order.id },
-                attributes: ['product_id', 'value'],
-            })
-
-            const orderToAdd = {
-                order_id: order.id,
-                total: order.total,
-                date: order.date,
-                products: orderProducts.map((op) => ({
-                    product_id: op.product_id,
-                    value: op.value,
-                })),
+            if (!Array.isArray(orders)) {
+                orders = []
             }
 
-            usersMap.get(userId).orders.push(orderToAdd)
-        }
+            return {
+                user_id: user.id,
+                name: user.name,
+                orders,
+            }
+        })
 
-        const data = Array.from(usersMap.values())
         return data
     } catch (error) {
+        console.log('🚀 ~ getOrdersWithProducts ~ error:', error)
         throw error
     }
 }
