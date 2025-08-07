@@ -4,7 +4,8 @@ import {
     IUserOrders,
     OrdersQuery,
 } from '@/modules/files/files.types'
-import { fileProcessError } from '@/modules/files/files.errors'
+import { fileProcessError } from './errors/files.errors'
+import { orderNotFoundError } from './errors/order.error'
 
 function parseLine(line: string): ILegacyLine {
     return {
@@ -82,10 +83,12 @@ async function getNormalizedOrders({
             start_date,
             end_date,
         })
-
+        if (!rows || rows.length === 0) {
+            throw orderNotFoundError(order_id)
+        }
         return rows
     } catch (error) {
-        throw fileProcessError()
+        throw error
     }
 }
 

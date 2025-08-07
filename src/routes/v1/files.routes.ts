@@ -91,6 +91,9 @@ router.post(
  *             schema:
  *               type: object
  *               properties:
+ *                 name:
+ *                   type: string
+ *                   example: "orderNotFoundError"
  *                 message:
  *                   type: string
  *                   example: "Order not found"

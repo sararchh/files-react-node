@@ -1,12 +1,12 @@
-import { Request, Response, NextFunction } from 'express'
-
-import httpStatus from 'http-status'
 import {
     fileNotFoundError,
     fileExtError,
     fileSizeError,
     fileValidationError,
-} from '@/errors/files-payload-exists.error'
+} from '@/modules/files/errors/files.errors'
+import { Request, Response, NextFunction } from 'express'
+
+import httpStatus from 'http-status'
 
 const maxSize = 1 * 1000 * 1000 // 1MB
 const filetypes = /txt$/i

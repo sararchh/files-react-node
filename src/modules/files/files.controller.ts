@@ -2,10 +2,7 @@ import filesService from '@/modules/files/files.service'
 import { Request, Response } from 'express'
 import fs from 'fs/promises'
 import httpStatus from 'http-status'
-import {
-    invalidFileDataError,
-    fileProcessError,
-} from '@/modules/files/files.errors'
+import { invalidFileDataError, fileProcessError } from './errors/files.errors'
 import { OrdersQuery } from './files.types'
 
 const uploadFileController = async (req: Request, res: Response) => {
@@ -16,7 +13,7 @@ const uploadFileController = async (req: Request, res: Response) => {
         await fs.unlink(filePath)
         res.json({ message: 'Arquivo processado com sucesso' })
     } catch (error) {
-        res.status(httpStatus.INTERNAL_SERVER_ERROR).json(fileProcessError())
+        res.status(httpStatus.BAD_REQUEST).json(fileProcessError())
     }
 }
 
@@ -29,8 +26,12 @@ const getOrdersController = async (req: Request, res: Response) => {
             end_date,
         } as OrdersQuery)
         res.json(orders)
-    } catch (error) {
-        res.status(httpStatus.INTERNAL_SERVER_ERROR).json(fileProcessError())
+    } catch (error: any) {
+        if (error?.name === 'orderNotFoundError') {
+            return res.status(error.statusCode || 400).json(error)
+        }
+
+        return res.status(httpStatus.BAD_REQUEST).json(fileProcessError())
     }
 }
 

@@ -1,4 +1,3 @@
-- adicionar swagger
 - adicionar jest e alto coverage
 - Corrigir docker e criacao de bd
 - colocar no README maneira de execução

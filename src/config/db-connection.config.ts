@@ -1,6 +1,6 @@
 import { Sequelize } from 'sequelize-typescript'
 import { environment } from './environment.config'
-import { entitiesMap } from '@/database/entitiesMap'
+import { entitiesMap } from '@/database/entities-map.database'
 import { Dialect } from 'sequelize'
 
 export class DataBaseConection {
