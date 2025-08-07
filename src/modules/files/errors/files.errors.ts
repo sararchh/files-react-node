@@ -23,21 +23,21 @@ export function fileProcessError(): ApplicationError {
 
 export function fileExtError() {
     return {
-        name: 'fileExtError',
-        message: 'Extensão de arquivo inválida. Apenas .txt permitido.',
+        name: 'FileExtError',
+        message: 'Invalid file extension. Only .txt allowed.',
     }
 }
 
 export function fileSizeError() {
     return {
-        name: 'fileSizeError',
-        message: 'Arquivo excede o tamanho máximo permitido (1MB).',
+        name: 'FileSizeError',
+        message: 'File exceeds the maximum allowed size (1MB).',
     }
 }
 
 export function fileValidationError() {
     return {
-        name: 'fileValidationError',
-        message: 'Erro ao validar arquivo.',
+        name: 'FileValidationError',
+        message: 'Error validating file.',
     }
 }

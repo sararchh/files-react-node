@@ -4164,6 +4164,11 @@ z-schema@^5.0.1:
   optionalDependencies:
     commander "^10.0.0"
 
+zod-validation-error@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/zod-validation-error/-/zod-validation-error-4.0.1.tgz#a105723eb40299578a6a38cb86647068f6d005b1"
+  integrity sha512-F3rdaCOHs5ViJ5YTz5zzRtfkQdMdIeKudJAoxy7yB/2ZMEHw73lmCAcQw11r7++20MyGl4WV59EVh7A9rNAyog==
+
 zod@4.0.14:
   version "4.0.14"
   resolved "https://registry.yarnpkg.com/zod/-/zod-4.0.14.tgz#cc3a0a21981e63e0f99c0f4f1decd92ec3be7e9f"

@@ -2,8 +2,9 @@ import filesService from '@/modules/files/files.service'
 import { Request, Response } from 'express'
 import fs from 'fs/promises'
 import httpStatus from 'http-status'
-import { invalidFileDataError, fileProcessError } from './errors/files.errors'
+import { fileProcessError } from './errors/files.errors'
 import { OrdersQuery } from './files.types'
+import { genericError } from './errors/generic.error'
 
 const uploadFileController = async (req: Request, res: Response) => {
     try {
@@ -31,7 +32,7 @@ const getOrdersController = async (req: Request, res: Response) => {
             return res.status(error.statusCode || 400).json(error)
         }
 
-        return res.status(httpStatus.BAD_REQUEST).json(fileProcessError())
+        return res.status(httpStatus.BAD_REQUEST).json(genericError())
     }
 }
 

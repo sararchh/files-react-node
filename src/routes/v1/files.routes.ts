@@ -3,6 +3,8 @@ import { Router } from 'express'
 import multerConfig from '@/config/multer.config'
 import { filesPayloadExists } from '@/middlewares/files-payload-exists.middleware'
 import filesController from '@/modules/files/files.controller'
+import { validationSchemaMiddleware } from '@/middlewares/validation-schema.middleware'
+import { getOrdersSchema } from '@/modules/files/schemas/get-orders.schema'
 
 const upload = multer(multerConfig)
 const router = Router()
@@ -104,6 +106,10 @@ router.post(
  *                   type: string
  *                   example: "Bad Request"
  */
-router.get('/orders', filesController.getOrdersController)
+router.get(
+    '/orders',
+    [validationSchemaMiddleware(getOrdersSchema)],
+    filesController.getOrdersController
+)
 
 export default router
