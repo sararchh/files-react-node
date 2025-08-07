@@ -7,7 +7,8 @@ RUN yarn install --frozen-lockfile
 
 COPY . .
 
-EXPOSE 3636
+# A porta será definida pela variável de ambiente PORT
+EXPOSE $PORT
 
 RUN yarn build
 

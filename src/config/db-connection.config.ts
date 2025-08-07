@@ -12,7 +12,7 @@ export class DataBaseConection {
 
     async _initDb() {
         this.conSequelize = new Sequelize({
-            dialect: environment?.DB_DIALECT as Dialect,
+            dialect: environment?.DB_CONNECTION as Dialect,
             host: environment?.DB_HOST,
             port: Number(environment?.DB_PORT),
             database: environment?.DB_DATABASE,
