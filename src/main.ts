@@ -18,6 +18,9 @@ const PORT = environment.PORT || 2424
 
 const app = express()
 
+import { setupSwagger } from './config/swagger'
+setupSwagger(app)
+
 app.use(cors())
 
 app.use(express.json())
