@@ -12,7 +12,7 @@ const uploadFileController = async (req: Request, res: Response) => {
         const content = await fs.readFile(filePath, 'utf-8')
         await filesService.processFileUpload(content)
         await fs.unlink(filePath)
-        res.json({ message: 'Arquivo processado com sucesso' })
+        res.json({ message: 'File processed successfully' })
     } catch (error) {
         res.status(httpStatus.BAD_REQUEST).json(fileProcessError())
     }
