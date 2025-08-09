@@ -33,7 +33,6 @@ describe('Files API Integration Tests', () => {
     })
 
     afterEach(async () => {
-        // Clean up files created during tests
         await cleanupUploadedFiles()
     })
 
