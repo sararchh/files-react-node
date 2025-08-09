@@ -4,7 +4,6 @@ import { Product } from '../../src/entities/Product'
 import { Order } from '../../src/entities/Order'
 import { OrderProduct } from '../../src/entities/OrderProduct'
 
-// Mock the entities
 jest.mock('../../src/entities/User')
 jest.mock('../../src/entities/Product')
 jest.mock('../../src/entities/Order')
